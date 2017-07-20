@@ -10,14 +10,16 @@
 
 BRIEF
 
+tput reset
+
 DISPLAYMSG="Time's Up!"
 
-function displayHelp() {
+function displayHelp {
   echo "Type \`alarm -t hh:mm\` or \`alarm --time hh:mm\` for setting the time (24 hour clock) at which the alarm will go off"
   echo "Type \`alarm -d hh:mm\` or \`alarm --duration hh:mm\` for setting the time at which the alarm will go off"
 }
 
-function verifyTime() {                                                         #  This verifies whether entered time is valid or not
+function verifyTime {                                                         #  This verifies whether entered time is valid or not
   min=${1##*:}
   hrs=${1%:*}
 
@@ -34,7 +36,7 @@ function verifyTime() {                                                         
   fi
 }
 
-function verifyDuration() {                                                         #  This verifies whether entered time is valid or not
+function verifyDuration {                                                         #  This verifies whether entered time is valid or not
   min=${1##*:}
   hrs=${1%:*}
 
@@ -51,7 +53,7 @@ function verifyDuration() {                                                     
   fi
 }
 
-function setDuration() {
+function setDuration {
   timeFinal=$(echo "$hrs * 3600 + $min * 60" | bc)
   timeCurrent=$(echo "$(date +%H) * 3600 + $(date +%M) * 60 + $(date +%S)" | bc)              #  date +%H gives the current hours in 24-hour system
                                                                                 #  date +%M gives the current minutes
@@ -63,7 +65,7 @@ function setDuration() {
   fi
 }
 
-function alarmSet() {
+function alarmSet {
   if [ "$1" = "-t" ] || [ "$1" = "--test" ]
   then
     time="$2"
@@ -81,7 +83,6 @@ function alarmSet() {
     if verifyDuration $duration
     then
       DURATION=$((hrs * 3600 + min * 60))
-      echo $DURATION
     else
       echo "Not a valid duration of time"
       exit 1;
@@ -90,7 +91,7 @@ function alarmSet() {
   fi
 }
 
-function setMessage() {
+function setMessage {
   echo "Do you want to display a message?y/n"
   read ANS
   if [ "$ANS" = "y" ]
@@ -103,39 +104,53 @@ function setMessage() {
   fi
 }
 
-function  showProgress() {
-  COLUMNS=$(tput cols)
+. ./views.sh
 
-  TIMEPERCOL=$(echo "$DURATION / $COLUMNS" | bc -l)
+function countDown {
+  secsLeft=$DURATION
 
-  for i in `seq 1 $COLUMNS`
+  while ((secsLeft >= 0))
   do
-    echo -ne "\r"
-    for j in `seq 1 $i`
-    do
-      echo -n "="
-    done
-    sleep $TIMEPERCOL
+    temp=$secsLeft
+    hoursLeft=$((secsLeft / 3600))
+    secsLeft=$((secsLeft % 3600))
+    minsLeft=$((secsLeft / 60))
+    secsLeft=$((secsLeft % 60))
+
+    tput reset
+
+    hoursLeft=$(printf "%02d" "$hoursLeft")
+    minsLeft=$(printf "%02d" "$minsLeft")
+    secsLeft=$(printf "%02d" "$secsLeft")
+    printNum "$hoursLeft:$minsLeft:$secsLeft"
+
+    sleep 1
+    secsLeft=$temp
+    ((secsLeft--))
   done
 }
 
 case $# in
-  2)  alarmSet $1 $2
+  2)  resize -s $(tput lines) 114 > al_temp
+      rm al_temp
       setMessage
+      alarmSet $1 $2
+      echo "Press return"
+      read -n 1
+      tput reset
       ;;
 
-  *)  displayHelp;;
+  *)  displayHelp
+      exit 1
+      ;;
 
 esac
 
 sleep $DURATION &
-echo
-echo
-echo
-echo "Progress:"
-showProgress
+#showProgress
+countDown
 wait
-echo "$DISPLAYMSG"
+echo $DISPLAYMSG
 echo "Press return"
 paplay /usr/share/sounds/ubuntu/ringtones/Alarm\ clock.ogg &
 

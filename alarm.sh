@@ -3,9 +3,6 @@
 # A script for setting an alarm within the terminal
 
 #ISSUES:
-#Alarm inaccurate for large time interval
-#tested to be off by 8 seconds for an alarm set for 10 minutes
-#
 #User cannot select his own alarm tone
 #setup file to be created to give the user a choice for his tunes
 
@@ -16,6 +13,15 @@
   For option -d or --duration, alarm will go off after set number of seconds have passed
 
 BRIEF
+
+#verify that initial setup has taken place
+if [ -f "alarm.config" ]
+then
+  continue
+else
+  echo "Run the setup script"
+  exit 1
+fi
 
 #To clear the screen completely
 tput reset
@@ -70,13 +76,19 @@ function setDuration {
   timeFinal=$(echo "$hrs * 3600 + $min * 60" | bc)
   timeCurrent=$(echo "$(date +%H) * 3600 + $(date +%M) * 60 + $(date +%S)" | bc)              #  date +%H gives the current hours in 24-hour system
                                                                                 #  date +%M gives the current minutes
-  DURATION=$((timeFinal - timeCurrent))
+  timeLeft=$((timeFinal - timeCurrent))
 
-
-  if [ "$DURATION" -lt 0 ]
+  if [ "$timeLeft" -lt 0 ]
   then
-    DURATION=$((DURATION + 24 * 3600))
+    timeLeft=$((timeLeft + 24 * 3600))
   fi
+
+  temp=$timeLeft
+  hrs=$((temp / 3600))
+  temp=$((temp % 3600))
+  min=$((temp / 60))
+  secs=$((temp % 60))
+  DURATION="${hrs}h ${min}m ${secs}s"
 }
 
 #sets alarm based on entered input
@@ -97,7 +109,9 @@ function alarmSet {
     duration="$2"
     if verifyDuration $duration
     then
-      DURATION=$((hrs * 3600 + min * 60))
+      DURATION="${hrs}h ${min}m"
+      secs=0
+      timeLeft=$((hrs * 3600 + min * 60))
     else
       echo "Not a valid duration of time"
       exit 1;
@@ -126,15 +140,18 @@ function setMessage {
 }
 
 #gets the current path of said script
-path=$(dirname "$(readlink -f "$0")")
+path=$PWD
 
 #refers to the "views.sh" script which must be in the same path
 . $path/views.sh
 
 #display countdown ie time left in hh:mm:ss
+
+#more accurate
+#<<"TRIAL1"
 function countDown {
-  secsLeft=$DURATION
-  secsFinal=$((DURATION + `(date +%s)`))
+  secsLeft=$timeLeft
+  secsFinal=$((timeLeft + `(date +%s)`))
 
   while ((secsLeft >= 0))
   do
@@ -163,11 +180,48 @@ function countDown {
 
   done
 }
+#TRIAL1
+
+#more efficient
+<<"TRIAL2"
+function countDown {
+  while((timeLeft >= 0))
+  do
+    hoursLeft=$(printf "%02d" "$hrs")
+    minsLeft=$(printf "%02d" "$min")
+    secsLeft=$(printf "%02d" "$secs")
+    printNum "$hoursLeft:$minsLeft:$secsLeft"
+    ((secs--))
+    ((timeLeft--))
+
+    if [ "$secs" -lt 0 ]
+    then
+      secs=59
+      ((min--))
+
+      if [ "$min" -lt 0 ]
+      then
+        min=59
+        ((hrs--))
+      fi
+    fi
+
+    sleep 1
+
+    tput reset
+  done
+}
+TRIAL2
+
 
 
 #main part of the script
 case $# in
   2)  resize -s $(tput lines) 114 > /dev/null 2>&1
+      toneDir=$(cat alarm.config)
+      ls $toneDir
+      echo "Select your alarm tone"
+      read tone
       setMessage
       echo "Press return"
       read -n 1
@@ -186,10 +240,11 @@ esac
 #showProgress
 countDown
 wait
+tput reset
 echo $DISPLAYMSG
 echo "Press return"
-paplay /usr/share/sounds/ubuntu/ringtones/Alarm\ clock.ogg &
+play -q "$toneDir/$tone" &
 
 read -n 1
-pkill paplay
+pkill play
 exit 0

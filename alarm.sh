@@ -23,6 +23,13 @@ else
   exit 1
 fi
 
+#Defining colours as per the ascii escape characters
+RED="\e[31;1m"
+GREEN="\e[32;1m"
+CYAN="\e[36;1m"
+YELLOW="\e[33;1m"
+NC="\e[0m"
+
 #To clear the screen completely
 tput reset
 
@@ -140,7 +147,7 @@ function setMessage {
 }
 
 #gets the current path of said script
-path=$PWD
+path=$(dirname "$(readlink -f "$0")")
 
 #refers to the "views.sh" script which must be in the same path
 . $path/views.sh
@@ -173,7 +180,16 @@ function countDown {
       hoursLeft=$(printf "%02d" "$hoursLeft")
       minsLeft=$(printf "%02d" "$minsLeft")
       secsLeft=$(printf "%02d" "$secsLeft")
-      printNum "$hoursLeft:$minsLeft:$secsLeft"
+      if [ "$minsLeft" -lt 1 ]
+      then
+        COLOUR="$RED"
+      elif [ "$minsLeft" -lt 10 ]
+      then
+        COLOUR="$YELLOW"
+      else
+        COLOUR="$CYAN"
+      fi
+      printNum "$hoursLeft:$minsLeft:$secsLeft" "$COLOUR"
       secsLeft=$temp
       ((secsLeft--))
     fi
@@ -182,45 +198,14 @@ function countDown {
 }
 #TRIAL1
 
-#more efficient
-<<"TRIAL2"
-function countDown {
-  while((timeLeft >= 0))
-  do
-    hoursLeft=$(printf "%02d" "$hrs")
-    minsLeft=$(printf "%02d" "$min")
-    secsLeft=$(printf "%02d" "$secs")
-    printNum "$hoursLeft:$minsLeft:$secsLeft"
-    ((secs--))
-    ((timeLeft--))
-
-    if [ "$secs" -lt 0 ]
-    then
-      secs=59
-      ((min--))
-
-      if [ "$min" -lt 0 ]
-      then
-        min=59
-        ((hrs--))
-      fi
-    fi
-
-    sleep 1
-
-    tput reset
-  done
-}
-TRIAL2
-
-
-
 #main part of the script
 case $# in
   2)  resize -s $(tput lines) 114 > /dev/null 2>&1
       toneDir=$(cat alarm.config)
+      echo -e "${GREEN}"
       ls $toneDir
-      echo "Select your alarm tone"
+      echo -e "${NC}"
+      echo -e "\n\nSelect your alarm tone"
       read tone
       setMessage
       echo "Press return"

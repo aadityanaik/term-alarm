@@ -12,6 +12,13 @@ then
   exit 1
 fi
 
+if !(dpkg -l coreutils > /dev/null 2>&1)
+then
+  echo "You don't have GNU coreutils installed."
+  echo "Please install coreutils to continue."
+  exit 1
+fi
+
 echo "This config file simply needs you to enter the path of the folder which will contain all of your alarm tones."
 echo "If unsure regarding the directory name, you may want to look it up."
 echo "Enter the directory name:"
@@ -29,4 +36,4 @@ fi
 echo "Thanks for going through the pain of configuring the alarm."
 echo "If you need to edit any information, you may simply execute this script again."
 
-echo "$dirName" > alarm.config
+echo "$dirName" > ~/.alarmconfig

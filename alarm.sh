@@ -3,8 +3,8 @@
 # A script for setting an alarm within the terminal
 
 #ISSUES:
-#User cannot select his own alarm tone
-#setup file to be created to give the user a choice for his tunes
+#Does not work on BSD-bash
+#No interactive mode
 
 <<"BRIEF"
   This alarm will operate using command line arguments.
@@ -15,7 +15,7 @@
 BRIEF
 
 #verify that initial setup has taken place
-if [ -f "alarm.config" ]
+if ls ~/.alarmconfig > /dev/null 2>&1
 then
   continue
 else
@@ -100,7 +100,7 @@ function setDuration {
 
 #sets alarm based on entered input
 function alarmSet {
-  if [ "$1" = "-t" ] || [ "$1" = "--test" ]
+  if [ "$1" = "-t" ] || [ "$1" = "--time" ]
   then
     time="$2"
     if verifyTime $time
@@ -147,10 +147,13 @@ function setMessage {
 }
 
 #gets the current path of said script
-path=$(dirname "$(readlink -f "$0")")
+path=$(realpath .) #$(dirname "$(readlink -f "$0")")
 
 #refers to the "views.sh" script which must be in the same path
 . $path/views.sh
+
+#this_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+#source $this_dir/views.sh
 
 #display countdown ie time left in hh:mm:ss
 
@@ -196,12 +199,36 @@ function countDown {
 
   done
 }
-#TRIAL1
+
+#for interactive mode
+function interact {
+	resize -s $(tput lines) 114 > /dev/null 2>&1
+
+	echo "Interactive mode-"
+	echo "Enter the time duration you want to be woken up after in hh:mm"
+
+	read DURATN
+
+	alarmSet "-t" "$DURATN"
+
+	toneDir=$(cat ~/.alarmconfig)
+  echo -e "${GREEN}"
+  ls $toneDir
+  echo -e "${NC}"
+  echo -e "\n\nSelect your alarm tone"
+  read tone
+  setMessage
+  echo "Press return"
+  read -n 1
+}
 
 #main part of the script
 case $# in
+	0)	interact
+			;;
+
   2)  resize -s $(tput lines) 114 > /dev/null 2>&1
-      toneDir=$(cat alarm.config)
+      toneDir=$(cat ~/.alarmconfig)
       echo -e "${GREEN}"
       ls $toneDir
       echo -e "${NC}"

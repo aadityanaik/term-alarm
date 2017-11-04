@@ -147,7 +147,7 @@ function setMessage {
 }
 
 #gets the current path of said script
-path=$(realpath .) #$(dirname "$(readlink -f "$0")")
+path=$(dirname "$(readlink -f "$0")")
 
 #refers to the "views.sh" script which must be in the same path
 . $path/views.sh

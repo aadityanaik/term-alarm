@@ -9,4 +9,4 @@ Type `alarm -t hh:mm` or `alarm --time hh:mm` for setting the time (24 hour cloc
 Type `alarm -d hh:mm` or `alarm --duration hh:mm` for setting the time at which the alarm will go off<br/>
 <br/>
 
-![ScreenShot](master/gifs/demo.gif?raw=true)
+![ScreenShot](master/gifs/demo.gif?raw=true "Demo")
